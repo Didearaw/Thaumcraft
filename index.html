@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="google-site-verification" content="9-CrW-xSiRAZkOMAUV9DH8P65ynVbxT2svGRAaC1Bp4" />
+    <meta name="description" content="The best Thaumcraft 4 Research Solver. Find optimal aspect routing paths instantly, or search GTNH's actual research list to auto-fill the grid. Supports GregTech, Blood Magic, Witchery, MagicBees, Forbidden Magic, and 20+ more GTNH addon mods." />
+    <meta name="keywords" content="Thaumcraft 4, Thaumcraft Research Solver, GTNH, GregTech New Horizons, Aspect Routing, Thaumcraft Helper, Minecraft Mod, GregTech Aspects, MagicBees Aspects, Blood Magic Aspects" />
+    <meta name="author" content="exaltedo2" />
+    
+    <!-- Open Graph / Discord / Social Media -->
+    <meta property="og:title" content="Thaumcraft 4 Research Solver" />
+    <meta property="og:description" content="Instantly find the shortest aspect routing paths for your Thaumcraft 4 research notes." />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://exaltedo2.github.io/ThaumcraftResearcher/" />
+    <meta property="og:image" content="https://exaltedo2.github.io/ThaumcraftResearcher/assets/hero.png" />
+    <meta property="og:image:width" content="343" />
+    <meta property="og:image:height" content="361" />
+
+    <!-- Twitter Card (Reddit also reads these as fallback) -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Thaumcraft 4 Research Solver" />
+    <meta name="twitter:description" content="Instantly find the shortest aspect routing paths for your Thaumcraft 4 research notes." />
+    <meta name="twitter:image" content="https://exaltedo2.github.io/ThaumcraftResearcher/assets/hero.png" />
+
+    <title>Thaumcraft 4 Research Solver</title>
+    <link rel="icon" type="image/png" href="./assets/hero.png">
+    <link rel="stylesheet" href="./src/styles/grid.css">
+    <link rel="stylesheet" href="./src/styles/main.css">
+  </head>
+  <body>
+    <div id="app">
+      <!-- Left Sidebar: Aspect Library -->
+      <aside class="sidebar left-sidebar">
+        <h2>Aspect Library</h2>
+        
+        <div class="controls">
+          <button id="btn-research" class="primary-btn">Research!</button>
+          <button id="btn-reset" class="secondary-btn">Reset Changes</button>
+
+          <div class="setting-group research-picker">
+            <label for="research-search">Load GTNH Research:</label>
+            <input type="text" id="research-search" placeholder="Search research name..." autocomplete="off">
+            <div class="research-results" id="research-results"></div>
+          </div>
+
+          <div class="setting-group">
+            <label for="grid-size">Grid Size:</label>
+            <select id="grid-size">
+              <option value="2">Small (3)</option>
+              <option value="3" selected>Standard (4)</option>
+              <option value="4">Large (5)</option>
+              <option value="5">Extra Large (6)</option>
+            </select>
+          </div>
+
+          <div class="setting-group mod-toggles">
+            <label><input type="checkbox" id="mod-gtnh"> GregTech New Horizons Aspects</label>
+          </div>
+        </div>
+
+        <div class="search-container" style="padding-bottom: 10px; border-bottom: 1px solid var(--panel-border); margin-bottom: 10px;">
+            <input type="text" id="aspect-search" placeholder="Search aspects..." style="width: 100%; padding: 8px;" />
+        </div>
+
+        <div class="setting-group compact-toggle">
+          <label for="compact-mode"><input type="checkbox" id="compact-mode"> Hide Aspect Details</label>
+        </div>
+
+        <div class="aspect-list-container" id="aspect-list">
+          <!-- Aspects injected by JS -->
+        </div>
+
+        <div class="custom-aspect-creator">
+          <h3>Add Custom Aspect</h3>
+          <form id="form-add-aspect">
+            <input type="text" id="custom-aspect-name" placeholder="Name" required />
+            <select id="custom-aspect-parent1" required>
+              <option value="" disabled selected hidden>Parent 1</option>
+            </select>
+            <select id="custom-aspect-parent2" required>
+              <option value="" disabled selected hidden>Parent 2</option>
+            </select>
+            <button type="submit">Add</button>
+          </form>
+        </div>
+      </aside>
+
+      <!-- Center Main Content: Grid -->
+      <main class="main-content">
+        <div class="grid-container" id="grid-container">
+          <!-- Hexagons injected by JS -->
+        </div>
+        <button id="btn-research-2" class="primary-btn grid-reset-btn">Research!</button>
+        <button id="btn-reset-hexes" class="secondary-btn grid-reset-btn">Reset Hexes</button>
+      </main>
+
+      <!-- Right Sidebar: How to Use -->
+      <div class="right-sidebar-wrapper" id="right-sidebar-wrapper">
+        <button id="btn-toggle-sidebar" class="sidebar-toggle-btn" title="Toggle How to Use">◀</button>
+        <aside class="sidebar right-sidebar" id="right-sidebar">
+          <h2>How to Use</h2>
+          <div class="instructions">
+            <p><strong>1. Place Aspects:</strong> Drag aspects from the library onto empty hexes to set endpoints. <em>Mobile: tap an aspect, then tap a hex.</em></p>
+            <p><strong>2. Add/Remove Gaps:</strong> Right-click an empty hex to toggle it as a void. <em>Mobile: tap an empty hex with nothing selected.</em></p>
+            <p><strong>3. Use More:</strong> Check "Use More" under an aspect to make the algorithm prefer using it.</p>
+            <p><strong>4. Enable/Disable:</strong> Uncheck an aspect to exclude it from the solve.</p>
+            <p><strong>5. Solve:</strong> Click "Research!" to automatically find the shortest parent-child path connecting your placed aspects. Don't like the layout? Click it again for a different valid pattern.</p>
+            <p><strong>6. Edit Formulas:</strong> Click the ⚙️ icon next to a compound aspect to edit its parents.</p>
+            <p><strong>7. Reset Hexes:</strong> Clears all placed aspects and gaps from the grid.</p>
+            <p><strong>8. Reset Changes:</strong> Clears custom aspects, enabled/disabled aspects, and grid size back to defaults.</p>
+          </div>
+          <p class="note"><strong>Note:</strong> With many endpoints, the solver can sometimes route through the same aspect via two separate branches instead of merging them into one shared path -- a known quirk that doesn't affect correctness. Not every GTNH research may be listed in the picker -- it covers everything I could find. This project is open source -- <a href="https://github.com/exaltedo2/ThaumcraftResearcher" target="_blank" rel="noopener noreferrer">check it out on GitHub</a>.</p>
+        </aside>
+      </div>
+    </div>
+    
+    <!-- Modal for editing formulas -->
+    <div id="edit-formula-modal" class="modal" style="display: none;">
+      <div class="modal-content">
+        <h3>Edit <span id="edit-formula-aspect-name"></span></h3>
+        <div class="setting-group" style="margin: 15px 0;">
+            <select id="edit-formula-parent1"></select>
+            <select id="edit-formula-parent2"></select>
+        </div>
+        <div style="display: flex; gap: 10px; justify-content: flex-end;">
+            <button id="cancel-formula-btn" style="padding: 5px 10px; background: rgba(0,0,0,0.3); color: white; border: 1px solid rgba(255,255,255,0.1); cursor: pointer;">Cancel</button>
+            <button id="save-formula-btn" style="padding: 5px 10px; background: var(--primary-color); color: white; border: none; cursor: pointer;">Save</button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Custom Tooltip -->
+    <div id="aspect-tooltip" class="aspect-tooltip" style="display: none;"></div>
+
+    <!-- Scripts -->
+    <script type="module" src="./src/main.js"></script>
+
+    <!-- Cloudflare Web Analytics -->
+    <script type='module' src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "e4a5cff768ed4db598da24a3171d46a8"}'></script>
+    <!-- End Cloudflare Web Analytics -->
+  </body>
+</html>
