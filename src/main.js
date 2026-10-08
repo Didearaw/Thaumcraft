@@ -1,5 +1,6 @@
 import { AspectDatabase } from './data/aspects.js';
-import { gtnhResearch } from './data/gtnhResearch.js';
+import { gtnhResearch, searchResearch, getResearchDisplayName } from './data/gtnhResearch.js';
+import { t, getLang, setLang, translateHtml, SUPPORTED_LANGS } from './core/i18n.js';
 import { AspectListUI } from './ui/aspectList.js';
 import { HexGrid } from './core/grid.js';
 import { GridRenderer } from './ui/gridRenderer.js';
@@ -8,6 +9,19 @@ import { AspectGraph } from './core/graph.js';
 import { Solver } from './core/solver.js';
 
 document.addEventListener('DOMContentLoaded', () => {
+    // 0. Language: apply the saved interface language to every static element
+    const langSelect = document.getElementById('lang-select');
+    if (langSelect) langSelect.value = getLang();
+
+    const applyStaticI18n = () => {
+        translateHtml(document);
+        document.documentElement.lang = getLang();
+        const titleEl = document.querySelector('title[data-i18n]');
+        if (titleEl) document.title = t(titleEl.getAttribute('data-i18n'));
+        if (langSelect) langSelect.value = getLang();
+    };
+    applyStaticI18n();
+
     // 1. Initialize Database
     const db = new AspectDatabase();
 
@@ -67,10 +81,20 @@ document.addEventListener('DOMContentLoaded', () => {
         aspectListUI.clearSelection();
     });
 
+    // 4b. Language Switcher -- re-translates static markup and re-renders dynamic lists
+    if (langSelect) {
+        langSelect.addEventListener('change', (e) => {
+            setLang(SUPPORTED_LANGS.includes(e.target.value) ? e.target.value : 'ru');
+            applyStaticI18n();
+            aspectListUI.render();
+            renderResearchResults(researchSearchInput.value);
+        });
+    }
+
     // 5. Reset Button
     const btnReset = document.getElementById('btn-reset');
     btnReset.addEventListener('click', () => {
-        if (!confirm("Reset all changes? This will clear custom aspects, enabled/disabled aspects, and grid size back to defaults.")) return;
+        if (!confirm(t('confirm.reset'))) return;
         localStorage.removeItem('thaumcraft_researcher_config');
         location.reload();
     });
@@ -173,9 +197,11 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        const matches = gtnhResearch.filter(r => r.name.toLowerCase().includes(q)).slice(0, 30);
+        // Search covers both language versions: Russian queries match `nameRu`,
+        // English queries still match the original `name`.
+        const matches = searchResearch(q, getLang()).slice(0, 30);
         if (matches.length === 0) {
-            researchResults.innerHTML = '<div class="research-empty">No matching research found.</div>';
+            researchResults.innerHTML = `<div class="research-empty">${t('research.empty')}</div>`;
             researchResults.classList.add('visible');
             return;
         }
@@ -183,13 +209,15 @@ document.addEventListener('DOMContentLoaded', () => {
         matches.forEach(r => {
             const item = document.createElement('div');
             item.className = 'research-result-item';
+            const displayName = getResearchDisplayName(r, getLang());
+            const secondaryName = r.nameRu && r.nameRu !== displayName ? r.name : '';
             item.innerHTML = `
-                <div class="research-result-name">${r.name}</div>
-                <div class="research-result-meta">${modLabels[r.mod] || r.mod} &middot; ${r.aspects.length} aspects</div>
+                <div class="research-result-name">${displayName}${secondaryName ? ` <span class="research-result-alt">(${secondaryName})</span>` : ''}</div>
+                <div class="research-result-meta">${modLabels[r.mod] || r.mod} &middot; ${t('meta.aspectCount', { count: r.aspects.length })}</div>
             `;
             item.addEventListener('click', () => {
                 applyResearch(r);
-                researchSearchInput.value = r.name;
+                researchSearchInput.value = displayName;
                 researchResults.classList.remove('visible');
             });
             researchResults.appendChild(item);
@@ -227,7 +255,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (paths && paths.length > 0) {
             gridRenderer.drawPaths(paths);
         } else {
-            alert("No valid path could be found to connect all endpoints with the currently enabled aspects!");
+            alert(t('alert.noPath'));
         }
     };
 
