@@ -1,4 +1,5 @@
 import { modAspects } from '../data/aspects.js';
+import { t, getLang } from '../core/i18n.js';
 
 export class AspectListUI {
     constructor(db, containerId, onAspectSelected = null) {
@@ -138,10 +139,8 @@ export class AspectListUI {
         this.checkModStates();
         this.container.classList.toggle('compact-mode', !!this.db.compactMode);
         this.container.innerHTML = '';
-        const aspects = Array.from(this.db.aspects.values()).filter(a => {
-            if (!this.searchQuery) return true;
-            return a.name.toLowerCase().includes(this.searchQuery) || a.id.toLowerCase().includes(this.searchQuery);
-        });
+        const lang = getLang();
+        const aspects = Array.from(this.db.aspects.values()).filter(a => this.db.matchesQuery(a, this.searchQuery, lang));
 
         // Group aspects into categories
         const categories = {
@@ -150,6 +149,7 @@ export class AspectListUI {
             'gtnh': [],
             'Custom Aspects': []
         };
+        // Keys stay stable (custom aspects store `modName = 'Custom Aspects'`); only the labels are translated.
 
         aspects.forEach(a => {
             if (a.isPrimal) {
@@ -199,20 +199,20 @@ export class AspectListUI {
 
                 item.innerHTML = `
                     <div class="aspect-item-header">
-                        <input type="checkbox" class="aspect-enable" data-id="${aspect.id}" ${isEnabled ? 'checked' : ''} title="Enable/Disable">
+                        <input type="checkbox" class="aspect-enable" data-id="${aspect.id}" ${isEnabled ? 'checked' : ''} title="${t('title.enableToggle')}">
                         <div class="aspect-title ${aspect.isPrimal ? 'aspect-tier-primal' : 'aspect-tier-compound'}">
                             ${iconHtml}
                             <span>${aspect.name}</span>
                         </div>
-                        ${aspect.isCustom ? `<button class="delete-custom-btn" data-id="${aspect.id}" title="Delete Custom Aspect" style="background:transparent;border:none;cursor:pointer;color:red;font-size:1.1rem;opacity:0.7;">🗑️</button>` : ''}
-                        ${!aspect.isPrimal ? `<button class="edit-formula-btn" data-id="${aspect.id}" title="Edit Formula">⚙️</button>` : ''}
+                        ${aspect.isCustom ? `<button class="delete-custom-btn" data-id="${aspect.id}" title="${t('title.deleteCustom')}" style="background:transparent;border:none;cursor:pointer;color:red;font-size:1.1rem;opacity:0.7;">🗑️</button>` : ''}
+                        ${!aspect.isPrimal ? `<button class="edit-formula-btn" data-id="${aspect.id}" title="${t('title.editFormula')}">⚙️</button>` : ''}
                     </div>
                     <div class="aspect-item-controls">
-                        <label title="Prefer using this aspect when solving">
-                            <input type="checkbox" class="aspect-use-more" data-id="${aspect.id}" ${isUseMore ? 'checked' : ''}> Use More
+                        <label title="${t('title.useMore')}">
+                            <input type="checkbox" class="aspect-use-more" data-id="${aspect.id}" ${isUseMore ? 'checked' : ''}> ${t('label.useMore')}
                         </label>
                         <span class="aspect-formula" id="formula-${aspect.id}">
-                            ${aspect.components.length > 0 ? `(${aspect.components[0]} + ${aspect.components[1]})` : '(Primal)'}
+                            ${aspect.components.length > 0 ? `(${aspect.components[0]} + ${aspect.components[1]})` : t('formula.primal')}
                         </span>
                     </div>
                 `;
@@ -255,7 +255,7 @@ export class AspectListUI {
                 const delBtn = item.querySelector('.delete-custom-btn');
                 if (delBtn) {
                     delBtn.addEventListener('click', () => {
-                        if (confirm(`Are you sure you want to delete the custom aspect "${aspect.name}"?`)) {
+                        if (confirm(t('confirm.deleteCustom', { name: aspect.name }))) {
                             this.db.aspects.delete(aspect.id);
                             this.db.enabledAspects.delete(aspect.id);
                             this.db.useMoreAspects.delete(aspect.id);
@@ -285,7 +285,7 @@ export class AspectListUI {
                     
                     let html = '';
                     if (aspect.isPrimal) {
-                        html = `<span>${aspect.name} (Primal)</span>`;
+                        html = `<span>${aspect.name} (${t('formula.primal').replace(/[()]/g, '')})</span>`;
                     } else {
                         const p1 = this.db.getAspect(aspect.components[0]);
                         const p2 = this.db.getAspect(aspect.components[1]);
@@ -324,10 +324,10 @@ export class AspectListUI {
             });
         };
 
-        renderGroup('Primals', categories['Primals']);
-        renderGroup('Base Game', categories['Base Game']);
-        renderGroup('GregTech New Horizons Aspects', categories['gtnh']);
-        renderGroup('Custom Aspects', categories['Custom Aspects']);
+        renderGroup(t('category.primals'), categories['Primals']);
+        renderGroup(t('category.baseGame'), categories['Base Game']);
+        renderGroup(t('category.gtnh'), categories['gtnh']);
+        renderGroup(t('category.custom'), categories['Custom Aspects']);
 
         // Update custom aspect form dropdowns
         this.updateCustomDropdowns();
@@ -346,7 +346,7 @@ export class AspectListUI {
             .map(a => `<option value="${a.id}">${a.name}</option>`)
             .join('');
 
-        p1.innerHTML = `<option value="">Parent 1</option>${options}`;
-        p2.innerHTML = `<option value="">Parent 2</option>${options}`;
+        p1.innerHTML = `<option value="">${t('custom.parent1')}</option>${options}`;
+        p2.innerHTML = `<option value="">${t('custom.parent2')}</option>${options}`;
     }
 }

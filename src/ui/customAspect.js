@@ -1,3 +1,5 @@
+import { t } from '../core/i18n.js';
+
 export class CustomAspectUI {
     constructor(db, aspectListUI) {
         this.db = db;
@@ -20,18 +22,18 @@ export class CustomAspectUI {
             const parent2 = parent2Input.value;
 
             if (!name || !parent1 || !parent2) {
-                alert("Please fill all fields to add a custom aspect.");
+                alert(t('alert.fillFields'));
                 return;
             }
 
             const id = name.toLowerCase().replace(/[^a-z0-9]/g, '');
             if (!id) {
-                alert("Aspect name must contain at least one alphanumeric character.");
+                alert(t('alert.badName'));
                 return;
             }
             
             if (this.db.getAspect(id)) {
-                alert("An aspect with this name already exists.");
+                alert(t('alert.duplicateName'));
                 return;
             }
 
